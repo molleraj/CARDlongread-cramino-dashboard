@@ -7,6 +7,7 @@ import numpy as np
 import argparse
 import dataclasses
 from dateutil.parser import isoparse
+from pandas.errors import EmptyDataError
 
 # example cramino output
 # File name	Chile_404.sorted_meth.bam
@@ -41,8 +42,8 @@ def get_fields_from_cramino(input_cramino_df,bam_type):
         n75 : float = 0
         median_length : float = 0
         mean_length : float = 0
-        median_identity : float = 0    
-        mean_identity : float = 0     
+        median_identity : float = 0
+        mean_identity : float = 0
         median_identity_q_score : float = 0
         mean_identity_q_score : float = 0
     # get values from each consecutive field in the cramino output dataframe
@@ -122,9 +123,15 @@ for idx, x in enumerate(files):
         # get important information
         current_data_fields = get_fields_from_cramino(data,args.bam_type)
         cramino_report_df.loc[idx] = [current_data_fields.file_name,current_data_fields.number_of_alignments,current_data_fields.percent_of_total_reads,current_data_fields.yield_gb,current_data_fields.mean_coverage,current_data_fields.yield_gb_over_25kb,current_data_fields.n50,current_data_fields.n75,current_data_fields.median_length,current_data_fields.mean_length,current_data_fields.median_identity,current_data_fields.mean_identity,current_data_fields.median_identity_q_score,current_data_fields.mean_identity_q_score]
+        f.close()
+    except EmptyDataError:
+        print(f"No columns to parse from file {x}")
+        continue
     except ValueError as e:
         print(e)
         continue
+# remove empty rows
+cramino_report_df.dropna(how='all',inplace=True)
 # print output data frame to tab delimited tsv file
 cramino_report_df.to_csv(args.output_file,sep='\t',index=False)
 # end program
